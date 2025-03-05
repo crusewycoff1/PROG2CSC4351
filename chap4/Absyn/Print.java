@@ -165,7 +165,6 @@ public class Print {
   /* Print Exp class types. Indent d spaces. */
   public void prExp(Exp e, int d) {
     indent(d);
-    say(e.getClass().getName());
     if (e instanceof OpExp) prExp((OpExp)e, d);
     else if (e instanceof VarExp) prExp((VarExp) e, d);
     else if (e instanceof NilExp) prExp((NilExp) e, d);
@@ -301,11 +300,11 @@ public class Print {
     say(")");
   }
 
-  void prUnaryExp(UnaryExp v, int d) {
+  void prExp(UnaryExp v, int d) {
     say("hello");
   }
 
-  void prStructExp(StructExp v, int d) {
+  void prExp(StructExp v, int d) {
     say("hello 2");
   }
 
