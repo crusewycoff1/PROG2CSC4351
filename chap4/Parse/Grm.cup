@@ -1,4 +1,5 @@
 package Parse;
+import java.util.ArrayList;
 
 action code {: static Symbol.Symbol sym(String s) {
 	         return Symbol.Symbol.symbol(s);
@@ -30,19 +31,285 @@ scan with {: return lexer.nextToken(); :};
 terminal String ID, STRING_LITERAL;
 terminal Integer DECIMAL_LITERAL;
 terminal char CHAR_LITERAL;
-terminal INT, COMMA, COLON, SEMICOLON, LPAREN, RPAREN, LBRACK, RBRACK, LBRACE, RBRACE, PLUS, MINUS, TIMES, DIVIDE, EQ, NEQ, LT, LE, GT, GE, AND, OR, ASSIGN, IF, ELSE, WHILE, FOR, DO, BREAK, FUN, VAR, VOLATILE, NOT, REGISTER, CONTINUE, TYPEDEF, STRUCT, STATIC, SIZEOF, RETURN, EXTERN, DOUBLE, UNION, SHORT, FLOAT, CONST, VOID, LONG, GOTO, ENUM, CHAR, AUTO, RSHIFTASSIGN, LSHIFTASSIGN, ELIPSES, BWISEORASSIGN, BWISEXORASSIGN, RSHIFT, LSHIFT, DIVASSIGN, ARROW, SUBASSIGN, DECREMENT, ADDASSIGN, INCREMENT, MULASSIGN, BWISEANDASSIGN, MODASSIGN, TILDE, BWISEOR, BWISEXOR, PERIOD, BITWISEAND, MODULUS;
+terminal INT, COMMA, COLON, SEMICOLON, LPAREN, RPAREN, LBRACK, RBRACK, LBRACE, RBRACE, PLUS, MINUS, 
+TIMES, DIVIDE, EQ, NEQ, LT, LE, GT, GE, AND, OR, ASSIGN, IF, ELSE, WHILE, FOR, DO, BREAK, FUN, VAR, 
+VOLATILE, NOT, REGISTER, CONTINUE, TYPEDEF, STRUCT, STATIC, SIZEOF, RETURN, EXTERN, DOUBLE, UNION, 
+SHORT, FLOAT, CONST, VOID, LONG, GOTO, ENUM, CHAR, AUTO, RSHIFTASSIGN, LSHIFTASSIGN, ELIPSES, 
+BWISEORASSIGN, BWISEXORASSIGN, RSHIFT, LSHIFT, DIVASSIGN, ARROW, SUBASSIGN, DECREMENT, ADDASSIGN, 
+INCREMENT, MULASSIGN, BWISEANDASSIGN, MODASSIGN, TILDE, BWISEOR, BWISEXOR, PERIOD, BITWISEAND, MODULUS;
 
-non terminal Absyn.Exp          Exp;
+non terminal Absyn.Exp          primary_expression, assignment_expression, postfix_expression, cast_expression, 
+unary_expression, multiplicative_expression, additive_expression, shift_expression, 
+relational_expression, equality_expression, and_expression, exclusive_or_expression,
+inclusive_or_expression, logical_and_expression, logical_or_expression, comma_operator, expression;
 non terminal Absyn.Var          Var;
 
-start with Exp;
+non terminal enumerator, struct_declaration_list, constant_expression, expression_array_type, enumerator_list, compound_statement, declaration_list, statementordecloration_list, 
+expression_statement, declaration, name, bitfield_list, 
+bitfield_value, empty_array_type_list, empty_array_type, expression_array_type_list, type, type_augments, brackets_list, pointer_list, type_name, 
+initialization, struct_or_union_declarator, struct_or_union, type_parameters, parameters, parameter_list, parameter_type_list, initializer_list, 
+initializer;
 
-Exp ::= error:e
+precedence right INCREMENT, DECREMENT;
+precedence left TIMES, DIVIDE, MODULUS;
+precedence left PLUS, MINUS;
+precedence right TILDE, NOT;
+precedence left RSHIFT, LSHIFT;
+precedence left BITWISEAND, BWISEOR, BWISEXOR;
+precedence left GE, GT, LE, LT, EQ, NEQ;
+precedence left AND, OR;
+precedence right ASSIGN, ADDASSIGN, SUBASSIGN, 
+                MULASSIGN, DIVASSIGN, MODASSIGN, 
+                BWISEANDASSIGN, BWISEORASSIGN, 
+                BWISEXORASSIGN, LSHIFTASSIGN, RSHIFTASSIGN; 
+
+start with declaration_list;
+
+declaration_list ::= declaration_list statementordecloration_list
+                  | statementordecloration_list
+                  ;
+
+statementordecloration_list ::= declaration
+                              | expression_statement:e
+                              ;
+
+expression_statement ::= comma_operator SEMICOLON /* something wrong? */
+                       | SEMICOLON
+                       ;
+
+
+declaration ::= VAR bitfield_list type name initialization SEMICOLON 
+              | FUN bitfield_list type name parameters compound_statement
+              | FUN bitfield_list type name type_parameters SEMICOLON
+              | TYPEDEF type name SEMICOLON
+              | bitfield_list struct_or_union name struct_or_union_declarator
+              | ENUM ID LBRACE enumerator_list RBRACE
+              ;
+
+name ::= ID;
+
+bitfield_list ::= bitfield_value bitfield_list;
+
+bitfield_value ::= CONST
+                 | VOLATILE
+                 | EXTERN
+                 | STATIC
+                 | AUTO
+                 | REGISTER
+                 ;
+
+empty_array_type_list ::= empty_array_type
+                        | empty_array_type_list:list empty_array_type
+                        ;
+
+empty_array_type ::= LBRACK RBRACK;
+
+expression_array_type_list ::= expression_array_type
+                             | expression_array_type_list expression_array_type
+                             ;
+
+expression_array_type ::= LBRACK constant_expression RBRACK;
+
+type ::= type_name type_augments
+       | type_name
+       ;
+
+type_augments ::= pointer_list
+                | brackets_list
+                | pointer_list brackets_list
+                ;
+
+brackets_list ::= empty_array_type_list
+                | expression_array_type_list
+                ; 
+
+pointer_list ::= TIMES
+               | pointer_list TIMES
+               ;
+
+type_name ::= VOID
+            | CHAR
+            | SHORT
+            | INT
+            | LONG
+            | FLOAT
+            | DOUBLE
+            | ENUM ID
+            | ID
+            ;
+
+initialization ::= ASSIGN initializer;
+
+struct_or_union_declarator ::= LBRACE struct_declaration_list RBRACE;
+
+enumerator_list ::= enumerator
+                  | enumerator_list COMMA enumerator
+                  ;
+
+enumerator ::= ID
+             | ID ASSIGN constant_expression
+             ;
+
+struct_declaration_list ::= type name SEMICOLON
+                          | struct_declaration_list type name SEMICOLON
+                          ;
+
+struct_or_union ::= STRUCT
+                  | UNION
+                  ;
+
+type_parameters ::= LPAREN parameter_type_list RPAREN
+                   | LPAREN parameter_list COMMA ELIPSES RPAREN
+                   | LPAREN RPAREN
+                   ;
+
+parameters ::= LPAREN parameter_list RPAREN
+            | LPAREN parameter_list COMMA ELIPSES RPAREN
+            | LPAREN RPAREN
+            ;
+
+parameter_list ::= type name
+                 | parameter_list COMMA type name
+                 ; 
+
+parameter_type_list ::= type
+                      | parameter_type_list COMMA type
+                      ;
+
+initializer_list ::= initializer
+                   | initializer_list COMMA initializer
+                   ;
+
+initializer ::= assignment_expression
+              | LBRACE initializer_list RBRACE
+              ;
+
+primary_expression ::= error:e
 	  {: RESULT = new Absyn.SeqExp(eleft, null); :}
 	| Var:v
 	  {: RESULT = new Absyn.VarExp(vleft, v); :}
-	;
+  | DECIMAL_LITERAL:e
+    {:RESULT = new Absyn.IntExp(0, e.intValue()); :}
+  | LPAREN expression:e RPAREN
+    {: RESULT = e; :}
+  ;
 
-Var ::=   ID:n
+postfix_expression ::= primary_expression
+  | postfix_expression:e INCREMENT
+    {:RESULT = new Absyn.UnaryExp(0, Absyn.UnaryExp.INCREMENT, e, false);:}
+  | postfix_expression:e DECREMENT
+    {:RESULT = new Absyn.UnaryExp(0, Absyn.UnaryExp.DECREMENT, e, false);:}
+  | postfix_expression:e PERIOD Var:v
+    {:RESULT = new Absyn.StructExp(0, v, e); :}
+  | postfix_expression:e ARROW Var:v
+    {:RESULT = new Absyn.StructExp(0, v, e); :}
+  ;
+
+unary_expression ::= postfix_expression
+  | INCREMENT unary_expression:e
+    {:RESULT = new Absyn.UnaryExp(0, Absyn.UnaryExp.INCREMENT, e, true);:}
+  | DECREMENT unary_expression:e
+    {:RESULT = new Absyn.UnaryExp(0, Absyn.UnaryExp.DECREMENT, e, true);:}
+  | PLUS cast_expression:e
+    {:RESULT = new Absyn.UnaryExp(0, Absyn.UnaryExp.PLUS, e, true);:}
+  | MINUS cast_expression:e
+    {:RESULT = new Absyn.UnaryExp(0, Absyn.UnaryExp.MINUS, e, true);:}
+  | TILDE cast_expression:e
+    {:RESULT = new Absyn.UnaryExp(0, Absyn.UnaryExp.TILDE, e, true);:}
+  | NOT cast_expression:e
+    {:RESULT = new Absyn.UnaryExp(0, Absyn.UnaryExp.NOT, e, true);:}
+  ;
+
+cast_expression ::= unary_expression ;
+
+multiplicative_expression ::= cast_expression
+  | multiplicative_expression:e1 TIMES cast_expression:e2
+    {: RESULT = new Absyn.OpExp(0, e1, Absyn.OpExp.MUL, e2); :}
+  | multiplicative_expression:e1 DIVIDE cast_expression:e2
+    {: RESULT = new Absyn.OpExp(0, e1, Absyn.OpExp.DIV, e2); :}
+  | multiplicative_expression:e1 MODULUS cast_expression:e2
+    {: RESULT = new Absyn.OpExp(0, e1, Absyn.OpExp.MOD, e2); :}
+  ;
+
+additive_expression ::= multiplicative_expression
+  | additive_expression:e1 PLUS multiplicative_expression:e2
+    {: RESULT = new Absyn.OpExp(0, e1, Absyn.OpExp.PLUS, e2); :}
+  | additive_expression:e1 MINUS multiplicative_expression:e2
+    {: RESULT = new Absyn.OpExp(0, e1, Absyn.OpExp.MINUS, e2); :}
+  ;
+
+shift_expression ::= additive_expression
+  | shift_expression:e1 RSHIFT additive_expression:e2
+    {: RESULT = new Absyn.OpExp(0, e1, Absyn.OpExp.RSHIFT, e2); :}
+  | shift_expression:e1 LSHIFT additive_expression:e2
+    {: RESULT = new Absyn.OpExp(0, e1, Absyn.OpExp.LSHIFT, e2); :}
+  ;
+
+relational_expression ::= shift_expression
+  | relational_expression:e1 GE shift_expression:e2
+    {: RESULT = new Absyn.OpExp(0, e1, Absyn.OpExp.GE, e2); :}
+  | relational_expression:e1 GT shift_expression:e2
+    {: RESULT = new Absyn.OpExp(0, e1, Absyn.OpExp.GT, e2); :}
+  | relational_expression:e1 LE shift_expression:e2
+    {: RESULT = new Absyn.OpExp(0, e1, Absyn.OpExp.LE, e2); :}
+  | relational_expression:e1 LT shift_expression:e2
+    {: RESULT = new Absyn.OpExp(0, e1, Absyn.OpExp.LT, e2); :}
+  ;
+
+equality_expression ::= relational_expression
+  | equality_expression:e1 EQ relational_expression:e2
+    {: RESULT = new Absyn.OpExp(0, e1, Absyn.OpExp.EQ, e2); :}
+  | equality_expression:e1 NEQ relational_expression:e2
+    {: RESULT = new Absyn.OpExp(0, e1, Absyn.OpExp.NE, e2); :}
+  ;
+
+and_expression ::= equality_expression
+  | and_expression:e1 BITWISEAND equality_expression:e2
+    {: RESULT = new Absyn.OpExp(0, e1, Absyn.OpExp.BITWISEAND, e2); :}
+    ;
+
+logical_and_expression ::= inclusive_or_expression
+  | logical_and_expression:e1 AND inclusive_or_expression:e2
+    {: RESULT = new Absyn.OpExp(0, e1, Absyn.OpExp.AND, e2); :}
+  ;
+
+logical_or_expression ::= logical_and_expression
+  | logical_or_expression:e1 OR logical_and_expression:e2
+    {: RESULT = new Absyn.OpExp(0, e1, Absyn.OpExp.OR, e2); :}
+  ;
+
+assignment_expression ::= logical_or_expression
+  | unary_expression:v ASSIGN assignment_expression:e2
+    {: RESULT = new Absyn.AssignExp(0, v, Absyn.AssignExp.ASSIGN, e2); :}
+  | unary_expression:v ADDASSIGN assignment_expression:e2
+    {: RESULT = new Absyn.AssignExp(0, v, Absyn.AssignExp.ADDASSIGN, e2); :}
+  | unary_expression:v SUBASSIGN assignment_expression:e2
+    {: RESULT = new Absyn.AssignExp(0, v, Absyn.AssignExp.SUBASSIGN, e2); :}
+  | unary_expression:v DIVASSIGN assignment_expression:e2
+    {: RESULT = new Absyn.AssignExp(0, v, Absyn.AssignExp.DIVASSIGN, e2); :}
+  | unary_expression:v MULASSIGN assignment_expression:e2
+    {: RESULT = new Absyn.AssignExp(0, v, Absyn.AssignExp.MULASSIGN, e2); :}
+  | unary_expression:v MODASSIGN assignment_expression:e2
+    {: RESULT = new Absyn.AssignExp(0, v, Absyn.AssignExp.MODASSIGN, e2); :}
+  | unary_expression:v BWISEANDASSIGN assignment_expression:e2
+    {: RESULT = new Absyn.AssignExp(0, v, Absyn.AssignExp.BWISEANDASSIGN, e2); :}
+  | unary_expression:v BWISEORASSIGN assignment_expression:e2
+    {: RESULT = new Absyn.AssignExp(0, v, Absyn.AssignExp.BWISEORASSIGN, e2); :}
+  | unary_expression:v BWISEXORASSIGN assignment_expression:e2
+    {: RESULT = new Absyn.AssignExp(0, v, Absyn.AssignExp.BWISEXORASSIGN, e2); :}
+  | unary_expression:v LSHIFTASSIGN assignment_expression:e2
+    {: RESULT = new Absyn.AssignExp(0, v, Absyn.AssignExp.LSHIFTASSIGN, e2); :}
+  | unary_expression:v RSHIFTASSIGN assignment_expression:e2
+    {: RESULT = new Absyn.AssignExp(0, v, Absyn.AssignExp.RSHIFTASSIGN, e2); :}
+  ;
+
+/* something wrong here too? */
+comma_operator ::= assignment_expression
+                | expression:e1 COMMA assignment_expression:e2
+                  {:RESULT = new Absyn.OpExp(0, e1, Absyn.OpExp.COMMA, e2); :}
+                ;
+  
+
+Var ::= ID:n
 	  {: RESULT = new Absyn.SimpleVar(nleft, sym(n)); :}
 	;

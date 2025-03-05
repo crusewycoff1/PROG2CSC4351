@@ -66,6 +66,15 @@ public class Print {
     case OpExp.LE: say("LE"); break;
     case OpExp.GT: say("GT"); break;
     case OpExp.GE: say("GE"); break;
+    case OpExp.MOD: say("MOD"); break;
+    case OpExp.RSHIFT: say("RSHIFT"); break;
+    case OpExp.LSHIFT: say("LSHIFT"); break;
+    case OpExp.BITWISEAND: say("BITWISEAND"); break;
+    case OpExp.BITWISEOR: say("BITWSEOR"); break;
+    case OpExp.BITWISEXOR: say("BITWISEXOR"); break;
+    case OpExp.AND: say("AND"); break;
+    case OpExp.OR: say("OR"); break;
+    case OpExp.COMMA: say("COMMA"); break;
     default:
       throw new Error("Print.prExp.OpExp");
     }
@@ -106,9 +115,10 @@ public class Print {
     prExplist(e.list, d+1); say(")");
   }
 
+  /* add some stuff here to print out kind of assignment */
   void prExp(AssignExp e, int d) {
     sayln("AssignExp(");
-    prVar(e.var, d+1); sayln(",");
+    prExp(e.var, d+1); sayln(","); /*changed from prVar to that */
     prExp(e.exp, d+1); say(")");
   }
   
@@ -155,6 +165,7 @@ public class Print {
   /* Print Exp class types. Indent d spaces. */
   public void prExp(Exp e, int d) {
     indent(d);
+    say(e.getClass().getName());
     if (e instanceof OpExp) prExp((OpExp)e, d);
     else if (e instanceof VarExp) prExp((VarExp) e, d);
     else if (e instanceof NilExp) prExp((NilExp) e, d);
@@ -170,6 +181,8 @@ public class Print {
     else if (e instanceof BreakExp) prExp((BreakExp) e, d);
     else if (e instanceof LetExp) prExp((LetExp) e, d);
     else if (e instanceof ArrayExp) prExp((ArrayExp) e, d);
+    else if (e instanceof UnaryExp) prExp((UnaryExp) e, d);
+    else if (e instanceof StructExp) prExp((StructExp) e, d);
     else throw new Error("Print.prExp");
   }
 
@@ -287,4 +300,13 @@ public class Print {
     }
     say(")");
   }
+
+  void prUnaryExp(UnaryExp v, int d) {
+    say("hello");
+  }
+
+  void prStructExp(StructExp v, int d) {
+    say("hello 2");
+  }
+
 }
