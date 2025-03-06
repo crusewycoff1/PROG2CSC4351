@@ -392,30 +392,30 @@ selection_statement ::= IF LPAREN expression:e RPAREN statement:e
             {: RESULT = new Absyn.SelectionStmt(e.left, e, s1, s2); :}
             ;
 
-iteration_statement ::= WHILE LPAREN expression RPAREN statement
-                    {::}
-                    | DO statement WHILE LPAREN expression RPAREN SEMICOLON
-                    {::}
-                    | FOR LPAREN expression SEMICOLON expression SEMICOLON expression RPAREN statement
-                    {::}
-                    | FOR LPAREN expression SEMICOLON expression SEMICOLON RPAREN statement
-                    {::}
-                    | FOR LPAREN SEMICOLON expression SEMICOLON RPAREN statement
-                    {::}
-                    | FOR LPAREN SEMICOLON SEMICOLON RPAREN statement
-                    {::}
-                    | FOR LPAREN expression SEMICOLON SEMICOLON expression RPAREN statement
-                    {::}
-                    | FOR LPAREN SEMICOLON expression SEMICOLON expression RPAREN statement
-                    {::}
+iteration_statement ::= WHILE LPAREN expression:e RPAREN statement:s
+                    {: RESULT = new Absyn.WhileStmt(e.left, e, s); :}
+                    | DO statement:s WHILE LPAREN expression:e RPAREN SEMICOLON
+                    {: RESULT = new Absyn.DoWhileStmt(s.left, s, e); :}
+                    | FOR LPAREN expression:e1 SEMICOLON expression:e2 SEMICOLON expression:e3 RPAREN statement:s
+                    {: RESULT = new Absyn.ForStmt(e1.left, e1, e2, e3, s); :}
+                    | FOR LPAREN expression:e1 SEMICOLON expression:e2 SEMICOLON RPAREN statement:s
+                    {: RESULT = new Absyn.ForStmt(e1.left, e1, e2, null, s); :}
+                    | FOR LPAREN SEMICOLON expression:e SEMICOLON RPAREN statement:s
+                    {: RESULT = new Absyn.ForStmt(e.left, null, e, null, s); :}
+                    | FOR LPAREN SEMICOLON SEMICOLON RPAREN statement:s
+                    {: RESULT = new Absyn.ForStmt(s.left, null, null, null, s); :}
+                    | FOR LPAREN expression:e1 SEMICOLON SEMICOLON expression:e2 RPAREN statement:s
+                    {: RESULT = new Absyn.ForStmt(e1.left, e1, null, e2, s); :}
+                    | FOR LPAREN SEMICOLON expression:e1 SEMICOLON expression:e2 RPAREN statement:s
+                    {: RESULT = new Absyn.ForStmt(e1.left, null, e1, e2, s); :}
                     ;
 
 jump_statement ::= GOTO Var:v SEMICOLON
-                  {::}
+                  {: RESULT = new Absyn.JumpStmt(v.left, v); :}
                   | CONTINUE SEMICOLON
                   | BREAK SEMICOLON
-                  | RETURN expression SEMICOLON
-                  {::}
+                  | RETURN expression:e SEMICOLON
+                  {: RESULT = new Absyn.JumpStmt(e.left, e); :}
                   | RETURN SEMICOLON
                   ;
 
