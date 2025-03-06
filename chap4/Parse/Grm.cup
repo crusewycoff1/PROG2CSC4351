@@ -363,33 +363,33 @@ statement ::= labeled_statement:s
               ;
 
 labeled_statement ::= Var:v COLON statement:s
-  {::}
+  {: RESULT =  new Absyn.LabeledStmt(v.left, v, s); :}
   ;
 
-compound_statement ::= LBRACE declaration_list statement_list RBRACE
-  {::}
-  | LBRACE statement_list RBRACE
-  {::}
+compound_statement ::= LBRACE declaration_list:d statement_list:s RBRACE
+  {: RESULT = new Absyn.CompoundStmt(d.left, d, s); :}
+  | LBRACE statement_list:s RBRACE
+  {: RESULT = new Absyn.CompoundStmt(s.left, null, s); :}
   | LBRACE declaration_list RBRACE
-  {::}
+  {: RESULT = new Absyn.CompoundStmt(d.left, d, null); :}
   | LBRACE RBRACE
   ;
 
-statement_list ::= statement
-            {::}
-            | statement_list statement
-            {::}
+statement_list ::= statement:s
+            {: RESULT = new Absyn.StmtList(s.left, s, null); :}
+            | statement_list:l statement:s
+            {: RESULT = new Absyn.StmtList(l.left, s, l); :}
             ;
 
-expression_statement ::= expression SEMICOLON
-            {::}
+expression_statement ::= expression:e SEMICOLON
+            {: RESULT = new Absyn.ExpressionStmt(e.left, e); :}
             | SEMICOLON
             ;
 
-selection_statement ::= IF LPAREN expression RPAREN statement
-            {::}
-            | IF LPAREN expression RPAREN statement ELSE statement
-            {::}
+selection_statement ::= IF LPAREN expression:e RPAREN statement:e
+            {: RESULT = new Absyn.SelectionStmt(e.left, e, s, null); :}
+            | IF LPAREN expression:e RPAREN statement:s1 ELSE statement:s2
+            {: RESULT = new Absyn.SelectionStmt(e.left, e, s1, s2); :}
             ;
 
 iteration_statement ::= WHILE LPAREN expression RPAREN statement
