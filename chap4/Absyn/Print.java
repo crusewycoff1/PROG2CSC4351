@@ -162,6 +162,36 @@ public class Print {
     prExp(e.init, d+1); say(")");
   }
 
+    void prExp(UnaryExp v, int d) {
+    sayln("UnaryExp(");
+    indent(d + 1);
+    switch (v.oper) {
+        case UnaryExp.PLUS: say("PLUS"); break;
+        case UnaryExp.MINUS: say("MINUS"); break;
+        case UnaryExp.NOT: say("NOT"); break;
+        case UnaryExp.TILDE: say("TILDE"); break;
+        case UnaryExp.INCREMENT: say("INCREMENT"); break;
+        case UnaryExp.DECREMENT: say("DECREMENT"); break;
+        default:
+          throw new Error("Print.prExp.UnaryExp: Unknown operator");
+    }
+    sayln(",");
+    prExp(v.exp, d + 1); 
+    say(")");
+  }
+
+  void prExp(StructExp v, int d) {
+    sayln("StructExp(");
+    indent(d + 1);
+    say("Var:");
+    prVar(v.var, d + 1);
+    sayln(",");
+    indent(d + 1);
+    say("Index:");
+    prExp(v.e, d + 1);
+    say(")");
+  }
+
   /* Print Exp class types. Indent d spaces. */
   public void prExp(Exp e, int d) {
     indent(d);
@@ -299,13 +329,4 @@ public class Print {
     }
     say(")");
   }
-
-  void prExp(UnaryExp v, int d) {
-    say("hello");
-  }
-
-  void prExp(StructExp v, int d) {
-    say("hello 2");
-  }
-
 }
