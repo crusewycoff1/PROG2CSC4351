@@ -1,5 +1,5 @@
 package Absyn;
-import Symbol.Symbol;
+
 public class IfExp extends Exp {
    public Exp test;
    public Exp thenclause;

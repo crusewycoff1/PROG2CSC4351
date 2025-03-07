@@ -66,6 +66,15 @@ public class Print {
     case OpExp.LE: say("LE"); break;
     case OpExp.GT: say("GT"); break;
     case OpExp.GE: say("GE"); break;
+    case OpExp.MOD: say("MOD"); break;
+    case OpExp.RSHIFT: say("RSHIFT"); break;
+    case OpExp.LSHIFT: say("LSHIFT"); break;
+    case OpExp.BITWISEAND: say("BITWISEAND"); break;
+    case OpExp.BITWISEOR: say("BITWSEOR"); break;
+    case OpExp.BITWISEXOR: say("BITWISEXOR"); break;
+    case OpExp.AND: say("AND"); break;
+    case OpExp.OR: say("OR"); break;
+    case OpExp.COMMA: say("COMMA"); break;
     default:
       throw new Error("Print.prExp.OpExp");
     }
@@ -106,9 +115,10 @@ public class Print {
     prExplist(e.list, d+1); say(")");
   }
 
+  /* add some stuff here to print out kind of assignment */
   void prExp(AssignExp e, int d) {
     sayln("AssignExp(");
-    prVar(e.var, d+1); sayln(",");
+    prExp(e.var, d+1); sayln(","); /*changed from prVar to that */
     prExp(e.exp, d+1); say(")");
   }
   
@@ -152,6 +162,36 @@ public class Print {
     prExp(e.init, d+1); say(")");
   }
 
+    void prExp(UnaryExp v, int d) {
+    sayln("UnaryExp(");
+    indent(d + 1);
+    switch (v.oper) {
+        case UnaryExp.PLUS: say("PLUS"); break;
+        case UnaryExp.MINUS: say("MINUS"); break;
+        case UnaryExp.NOT: say("NOT"); break;
+        case UnaryExp.TILDE: say("TILDE"); break;
+        case UnaryExp.INCREMENT: say("INCREMENT"); break;
+        case UnaryExp.DECREMENT: say("DECREMENT"); break;
+        default:
+          throw new Error("Print.prExp.UnaryExp: Unknown operator");
+    }
+    sayln(",");
+    prExp(v.exp, d + 1); 
+    say(")");
+  }
+
+  void prExp(StructExp v, int d) {
+    sayln("StructExp(");
+    indent(d + 1);
+    say("Var:");
+    prVar(v.var, d + 1);
+    sayln(",");
+    indent(d + 1);
+    say("Index:");
+    prExp(v.e, d + 1);
+    say(")");
+  }
+
   /* Print Exp class types. Indent d spaces. */
   public void prExp(Exp e, int d) {
     indent(d);
@@ -170,6 +210,8 @@ public class Print {
     else if (e instanceof BreakExp) prExp((BreakExp) e, d);
     else if (e instanceof LetExp) prExp((LetExp) e, d);
     else if (e instanceof ArrayExp) prExp((ArrayExp) e, d);
+    else if (e instanceof UnaryExp) prExp((UnaryExp) e, d);
+    else if (e instanceof StructExp) prExp((StructExp) e, d);
     else throw new Error("Print.prExp");
   }
 

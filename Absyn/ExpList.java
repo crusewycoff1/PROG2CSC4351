@@ -1,5 +1,5 @@
 package Absyn;
-import Symbol.Symbol;
+
 public class ExpList {
    public Exp head;
    public ExpList tail;

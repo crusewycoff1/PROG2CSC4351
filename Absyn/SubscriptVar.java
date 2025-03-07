@@ -1,5 +1,5 @@
 package Absyn;
-import Symbol.Symbol;
+
 public class SubscriptVar extends Var {
    public Var var;
    public Exp index;

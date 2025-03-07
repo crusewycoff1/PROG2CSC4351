@@ -1,5 +1,5 @@
 package Absyn;
-import Symbol.Symbol;
+
 public class DecList {
    public Dec head;
    public DecList tail;
