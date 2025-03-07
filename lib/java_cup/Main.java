@@ -53,6 +53,11 @@ import java.io.*;
  *   <dd> turn on debugging messages within JavaCup 
  *   <dt> -nopositions
  *   <dd> don't generate the positions code
+ *   <dt> -noscanner
+ *   <dd> don't refer to java_cup.runtime.Scanner in the parser
+ *        (for compatibility with old runtimes)
+ *   <dt> -version
+ *   <dd> print version information for JavaCUP and halt.
  *   </dl>
  *
  * @version last updated: 7/3/96
@@ -98,8 +103,12 @@ public class Main {
   /** User option -- should generator generate code for left/right values? */
   protected static boolean lr_values = true;
 
-  /** User option -- should symbols be put in a class or an interface? */
+  /** User option -- should symbols be put in a class or an interface? [CSA]*/
   protected static boolean sym_interface = false;
+
+  /** User option -- should generator suppress references to
+   *  java_cup.runtime.Scanner for compatibility with old runtimes? */
+  protected static boolean suppress_scanner = false;
 
   /*----------------------------------------------------------------------*/
   /* Timing data (not all of these time intervals are mutually exclusive) */
@@ -155,7 +164,8 @@ public class Main {
       emit.set_lr_values(lr_values);
       /* open output files */
       if (print_progress) System.err.println("Opening files...");
-      open_files();
+      /* use a buffered version of standard input */
+      input_file = new BufferedInputStream(System.in);
 
       prelim_end = System.currentTimeMillis();
 
@@ -181,18 +191,19 @@ public class Main {
 
           build_end = System.currentTimeMillis();
 
-	  /* output the generated code */
-          if (print_progress) System.err.println("Writing parser...");
-          emit_parser();
-	  did_output = true;
-
-          emit_end = System.currentTimeMillis();
+	  /* output the generated code, if # of conflicts permits */
+	  if (lexer.error_count != 0) {
+	      // conflicts! don't emit code, don't dump tables.
+	      opt_dump_tables = false;
+	  } else { // everything's okay, emit parser.
+	      if (print_progress) System.err.println("Writing parser...");
+	      open_files();
+	      emit_parser();
+	      did_output = true;
+	  }
 	}
-      else
-	{
-	  /* fix up the times to make the summary easier */
-	  emit_end = parse_end;
-	}
+      /* fix up the times to make the summary easier */
+      emit_end = System.currentTimeMillis();
 
       /* do requested dumps */
       if (opt_dump_grammar) dump_grammar();
@@ -201,12 +212,17 @@ public class Main {
 
       dump_end = System.currentTimeMillis();
 
-      /* close output files */
+      /* close input/output files */
       if (print_progress) System.err.println("Closing files...");
       close_files();
 
       /* produce a summary if desired */
       if (!no_summary) emit_summary(did_output);
+
+      /* If there were errors during the run,
+       * exit with non-zero status (makefile-friendliness). --CSA */
+      if (lexer.error_count != 0)
+	  System.exit(100);
     }
 
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
@@ -221,8 +237,8 @@ public class Main {
       System.err.println(message);
       System.err.println();
       System.err.println(
-"Usage: " + version.program_name + " [options]\n" +
-"  and expects a specification file on standard input.\n" +
+"Usage: " + version.program_name + " [options] [filename]\n" +
+"  and expects a specification file on standard input if no filename is given.\n" +
 "  Legal options include:\n" +
 "    -package name  specify package generated classes go in [default none]\n" +
 "    -parser name   specify parser class name [default \"parser\"]\n" +
@@ -234,12 +250,14 @@ public class Main {
 "    -nowarn        don't warn about useless productions, etc.\n" +
 "    -nosummary     don't print the usual summary of parse states, etc.\n" +
 "    -nopositions   don't propagate the left and right token position values\n" +
+"    -noscanner     don't refer to java_cup.runtime.Scanner\n" +
 "    -progress      print messages to indicate progress of the system\n" +
 "    -time          print time usage summary\n" +
 "    -dump_grammar  produce a human readable dump of the symbols and grammar\n"+
 "    -dump_states   produce a dump of parse state machine\n"+
 "    -dump_tables   produce a dump of the parse tables\n"+
-"    -dump          produce a dump of all of the above\n"
+"    -dump          produce a dump of all of the above\n"+
+"    -version       print the version information for CUP and exit\n"
       );
       System.exit(1);
     }
@@ -322,6 +340,22 @@ public class Main {
 	  else if (argv[i].equals("-nopositions"))  lr_values = false;
 	  /* CSA 12/21/97 */
 	  else if (argv[i].equals("-interface"))    sym_interface = true;
+	  /* CSA 23-Jul-1999 */
+	  else if (argv[i].equals("-noscanner"))    suppress_scanner = true;
+	  /* CSA 23-Jul-1999 */
+	  else if (argv[i].equals("-version")) {
+	      System.out.println(version.title_str);
+	      System.exit(1);
+	  }
+	  /* CSA 24-Jul-1999; suggestion by Jean Vaucher */
+	  else if (!argv[i].startsWith("-") && i==len-1) {
+	      /* use input from file. */
+	      try {
+		  System.setIn(new FileInputStream(argv[i]));
+	      } catch (java.io.FileNotFoundException e) {
+		  usage("Unable to open \"" + argv[i] +"\" for input");
+	      }
+	  }
 	  else
 	    {
 	      usage("Unrecognized option \"" + argv[i] + "\"");
@@ -351,9 +385,6 @@ public class Main {
     {
       File fil;
       String out_name;
-
-      /* use a buffered version of standard input */
-      input_file = new BufferedInputStream(System.in);
 
       /* open each of the output files */
 
@@ -547,15 +578,8 @@ public class Main {
 	{
 	  System.err.println("*** More conflicts encountered than expected " +
 			     "-- parser generation aborted");
-	  lexer.error_count++;
-	  build_end = System.currentTimeMillis();
-	  
-	  /* do dumps and summary as needed */
-          if (opt_dump_grammar) dump_grammar();
-          if (opt_dump_states)  dump_machine(); 
-	  if (!no_summary) emit_summary(false);
-
-	  System.exit(100);
+	  lexer.error_count++; // indicate the problem.
+	  // we'll die on return, after clean up.
 	}
     }
 
@@ -566,7 +590,8 @@ public class Main {
     {
       emit.symbols(symbol_class_file, include_non_terms, sym_interface);
       emit.parser(parser_class_file, action_table, reduce_table, 
-		  start_state.index(), emit.start_production, opt_compact_red);
+		  start_state.index(), emit.start_production, opt_compact_red,
+		  suppress_scanner);
     }
 
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
@@ -607,7 +632,7 @@ public class Main {
       /* basic stats */
       System.err.print("  " + terminal.number() + " terminal" + 
 			 plural(terminal.number()) + ", ");
-      System.err.print(non_terminal.number() + " non terminal" + 
+      System.err.print(non_terminal.number() + " non-terminal" + 
 			 plural(non_terminal.number()) + ", and ");
       System.err.println(production.number() + " production" + 
 			 plural(production.number()) + " declared, ");
@@ -617,7 +642,7 @@ public class Main {
       /* unused symbols */
       System.err.println("  " + emit.unused_term + " terminal" + 
 			 plural(emit.unused_term) + " declared but not used.");
-      System.err.println("  " + emit.unused_non_term + " non terminal" + 
+      System.err.println("  " + emit.unused_non_term + " non-terminal" + 
 			 plural(emit.unused_term) + " declared but not used.");
 
       /* productions that didn't reduce */
@@ -656,7 +681,7 @@ public class Main {
         + timestr(final_time-start_time, total_time));
       System.err.println("      Startup        "
 	+ timestr(prelim_end-start_time, total_time));
-      System.err.println("Parse          "
+      System.err.println("      Parse          "
 	+ timestr(parse_end-prelim_end, total_time) );
       if (check_end != 0)
         System.err.println("      Checking       "
@@ -754,23 +779,19 @@ public class Main {
   /** Produce a human readable dump of the grammar. */
   public static void dump_grammar() throws internal_error
     {
-      int cnt;
-      Enumeration t, n, p;
-      production prod;
-
       System.err.println("===== Terminals =====");
-      for (t = terminal.all(), cnt=0; t.hasMoreElements(); cnt++)
+      for (int tidx=0, cnt=0; tidx < terminal.number(); tidx++, cnt++)
 	{
-	  System.err.print(((terminal)t.nextElement()).name() + " ");
+	  System.err.print("["+tidx+"]"+terminal.find(tidx).name()+" ");
 	  if ((cnt+1) % 5 == 0) System.err.println();
 	}
       System.err.println();
       System.err.println();
 
       System.err.println("===== Non terminals =====");
-      for (n=non_terminal.all(), cnt=0; n.hasMoreElements(); cnt++)
+      for (int nidx=0, cnt=0; nidx < non_terminal.number(); nidx++, cnt++)
 	{
-	  System.err.print(((non_terminal)n.nextElement()).name() + " ");
+	  System.err.print("["+nidx+"]"+non_terminal.find(nidx).name()+" ");
 	  if ((cnt+1) % 5 == 0) System.err.println();
 	}
       System.err.println();
@@ -778,10 +799,10 @@ public class Main {
 
 
       System.err.println("===== Productions =====");
-      for (p=production.all(); p.hasMoreElements(); )
+      for (int pidx=0; pidx < production.number(); pidx++)
 	{
-	  prod = (production)p.nextElement();
-	  System.err.print(prod.lhs().the_symbol().name() + " ::= ");
+	  production prod = production.find(pidx);
+	  System.err.print("["+pidx+"] "+prod.lhs().the_symbol().name() + " ::= ");
 	  for (int i=0; i<prod.rhs_length(); i++)
 	    if (prod.rhs(i).is_action())
 	      System.err.print("{action} ");

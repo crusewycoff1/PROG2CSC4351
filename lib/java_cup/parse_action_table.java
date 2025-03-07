@@ -118,11 +118,11 @@ public class parse_action_table {
 	      /* if the action is not an error print it */ 
 	      if (under_state[row].under_term[col].kind() != parse_action.ERROR)
 		{
-		  result += col + ":" + under_state[row].under_term[col] + " ";
+		  result += " [term " + col + ":" + under_state[row].under_term[col] + "]";
 
-		  /* end the line after the 3rd one */
+		  /* end the line after the 2nd one */
 		  cnt++;
-		  if (cnt == 3)
+		  if (cnt == 2)
 		    {
 		      result += "\n";
 		      cnt = 0;

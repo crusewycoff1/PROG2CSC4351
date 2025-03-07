@@ -2,4 +2,4 @@
 clear
 make clean
 make
-java Parse.Main test.c
+java Parse/Main.java test.c

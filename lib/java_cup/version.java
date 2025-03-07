@@ -19,11 +19,6 @@ package java_cup;
  */
 
 public class version {
-  /** String for the current version. */
-  public static final String version_str = "v0.10g";
-
-  /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
-
   /** The major version number. */
   public static final int major = 0;
 
@@ -35,7 +30,12 @@ public class version {
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
 
   /** The update letter. */
-  public static final char update = 'g';
+  public static final char update = 'k';
+
+  /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
+
+  /** String for the current version. */
+  public static final String version_str = "v" + major + "." + minor + update;
 
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
 
@@ -45,7 +45,8 @@ public class version {
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
 
   /** Name of the author */
-  public static final String author_str = "Scott E. Hudson and Frank Flannery";
+  public static final String author_str =
+      "Scott E. Hudson, Frank Flannery, and C. Scott Ananian";
 
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
 

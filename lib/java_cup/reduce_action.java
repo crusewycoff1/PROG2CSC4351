@@ -76,7 +76,7 @@ public class reduce_action extends parse_action {
   /** Convert to string. */
   public String toString() 
     {
-      return "REDUCE(" + reduce_with().index() + ")";
+      return "REDUCE(with prod " + reduce_with().index() + ")";
     }
 
   /*-----------------------------------------------------------*/

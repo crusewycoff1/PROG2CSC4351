@@ -9,10 +9,10 @@ class Main {
 
   static boolean do_debug_parse = false;
 
-  static public void main(String[] args) {
+  static public void main(String[] args) throws java.io.IOException {
 
       /* create a parsing object */
-      parser parser_obj = new parser();
+      parser parser_obj = new parser(new scanner());
 
       /* open input files, etc. here */
       Symbol parse_tree = null;

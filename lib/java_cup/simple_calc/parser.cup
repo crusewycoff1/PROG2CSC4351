@@ -4,10 +4,6 @@ package java_cup.simple_calc;
 
 import java_cup.runtime.*;
 
-/* Preliminaries to set up and use the scanner.  */
-init with {: scanner.init();              :};
-scan with {: return scanner.next_token(); :};
-
 /* Terminals (tokens returned by the scanner). */
 terminal           SEMI, PLUS, MINUS, TIMES, DIVIDE, MOD;
 terminal           UMINUS, LPAREN, RPAREN;

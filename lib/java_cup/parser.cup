@@ -76,6 +76,15 @@
               [CSA] 10/10/96
     v0.10g   Added support for array types on symbols.
               [CSA] 03/23/98
+    v0.10i  Broaden set of IDs allowed in multipart_id and label_id so
+            that only java reserved words (and not CUP reserved words like
+            'parser' and 'start') are prohibited.  Allow reordering of
+	    action code, parser code, init code, and scan with sections,
+	    and made closing semicolon optional for these sections.
+	    Added 'nonterminal' as a terminal symbol, finally fixing a
+	    spelling mistake that's been around since the beginning.
+	    For backwards compatibility, you can still misspell the
+	    word if you like.
 */
 /*================================================================*/ 
 
@@ -207,12 +216,13 @@ scan with {: return lexer.next_token(); :};
 terminal
   PACKAGE, IMPORT, CODE, ACTION, PARSER, TERMINAL, NON, INIT, SCAN, WITH, 
   START, SEMI, COMMA, STAR, DOT, COLON, COLON_COLON_EQUALS, BAR, PRECEDENCE,
-  LEFT, RIGHT, NONASSOC, PERCENT_PREC, LBRACK, RBRACK;
+  LEFT, RIGHT, NONASSOC, PERCENT_PREC, LBRACK, RBRACK, NONTERMINAL;
 
 terminal String  ID, CODE_STRING;
 
 non terminal
-  spec, package_spec, import_list, code_part, action_code_part, 
+  spec, package_spec, import_list, action_code_part, 
+  code_parts, code_part, opt_semi, non_terminal,
   parser_code_part, symbol_list, start_spec, production_list, 
   multipart_id, import_spec, import_id, init_code, scan_code, symbol, 
   type_id, term_name_list, non_term_name_list, production, prod_part_list, 
@@ -221,7 +231,7 @@ non terminal
   declares_non_term;
 
 non terminal String  nt_id, symbol_id, label_id, opt_label, terminal_id,
-                     term_id;
+                     term_id, robust_id;
 
 /*----------------------------------------------------------------*/ 
 
@@ -239,9 +249,7 @@ spec ::=
 	:}
 	package_spec
 	import_list
-	code_part
-        init_code 
-	scan_code
+	code_parts
 	symbol_list
 	precedence_list
 	start_spec
@@ -302,54 +310,59 @@ import_spec ::=
 
 /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */ 
 
-code_part ::= action_code_part parser_code_part ;
+// allow any order; all parts are optional. [CSA, 23-Jul-1999]
+// (we check in the part action to make sure we don't have 2 of any part)
+code_part ::=
+	action_code_part | parser_code_part | init_code | scan_code ;
+code_parts ::= 
+	| code_parts code_part;
 
 /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */ 
 
 action_code_part ::= 
-	ACTION CODE CODE_STRING:user_code SEMI
+	ACTION CODE CODE_STRING:user_code opt_semi
 	{:
-	  /* save the user included code string */
-	  emit.action_code = user_code;
+	  if (emit.action_code!=null)
+	    lexer.emit_error("Redundant action code (skipping)");
+	  else /* save the user included code string */
+	    emit.action_code = user_code;
 	:}
-	|
-	empty
 	;
 
 /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */ 
 
 parser_code_part ::= 
-	PARSER CODE CODE_STRING:user_code SEMI
+	PARSER CODE CODE_STRING:user_code opt_semi
 	{:
-	  /* save the user included code string */
-	  emit.parser_code = user_code;
+	  if (emit.parser_code!=null)
+	    lexer.emit_error("Redundant parser code (skipping)");
+	  else /* save the user included code string */
+	    emit.parser_code = user_code;
 	:}
-	|
-	empty
 	;
 
 /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */ 
 
 init_code ::= 
-	INIT WITH CODE_STRING:user_code SEMI
+	INIT WITH CODE_STRING:user_code opt_semi
 	{: 
-	  /* save the user code */
-	  emit.init_code = user_code;
+	  if (emit.init_code!=null)
+	    lexer.emit_error("Redundant init code (skipping)");
+	  else /* save the user code */
+	    emit.init_code = user_code;
 	:}
-	|
-	empty
 	;
 
 /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */ 
 
 scan_code ::=
-	SCAN WITH CODE_STRING:user_code SEMI
+	SCAN WITH CODE_STRING:user_code opt_semi
 	{: 
-	  /* save the user code */
-	  emit.scan_code = user_code;
+	  if (emit.scan_code!=null)
+	    lexer.emit_error("Redundant scan code (skipping)");
+	  else /* save the user code */
+	    emit.scan_code = user_code;
 	:}
-	|
-	empty
 	;
 
 /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */ 
@@ -366,13 +379,11 @@ symbol ::=
 	TERMINAL
 	declares_term
 	|
-	NON 
-	TERMINAL
+	non_terminal
 	type_id
 	declares_non_term
 	|
-	NON 
-	TERMINAL
+	non_terminal
 	declares_non_term
 	|
 	/* error recovery productions -- sync on semicolon */
@@ -385,8 +396,7 @@ symbol ::=
 	:}
 	SEMI
 	|
-	NON
-	TERMINAL
+	non_terminal
 	error 
 	{:
 	  /* reset the accumulated multipart name */
@@ -692,10 +702,10 @@ opt_label ::=
 /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */ 
 
 multipart_id ::=
-	multipart_id DOT ID:another_id
+	multipart_id DOT robust_id:another_id
 	{: append_multipart(another_id); :}
 	|
-	ID:an_id
+	robust_id:an_id
 	{: append_multipart(an_id); :}
 	;
 
@@ -775,6 +785,11 @@ new_non_term_id ::=
 nt_id ::=
 	ID:the_id
 	{: RESULT = the_id; :}
+	| error
+	{:
+		lexer.emit_error("Illegal use of reserved word");
+		RESULT="ILLEGAL";
+	:}
 	;
 
 /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */ 
@@ -782,14 +797,55 @@ nt_id ::=
 symbol_id ::=
 	ID:the_id
 	{: RESULT = the_id; :}
+	| error
+	{:
+		lexer.emit_error("Illegal use of reserved word");
+		RESULT="ILLEGAL";
+	:}
 	;
 
 /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */ 
 
 label_id ::= 
-	ID:the_id
+	robust_id:the_id
 	{: RESULT = the_id; :}
 	;
+
+/*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */ 
+
+robust_id ::= /* all ids that aren't reserved words in Java */
+	ID:the_id	{: RESULT = the_id; :}
+	/* package is reserved. */
+	/* import is reserved. */
+	| CODE		{: RESULT = "code"; :}
+	| ACTION	{: RESULT = "action"; :}
+	| PARSER	{: RESULT = "parser"; :}
+	| TERMINAL	{: RESULT = "terminal"; :}
+	| NON		{: RESULT = "non"; :}
+	| NONTERMINAL   {: RESULT = "nonterminal"; :}
+	| INIT		{: RESULT = "init"; :}
+	| SCAN		{: RESULT = "scan"; :}
+	| WITH		{: RESULT = "with"; :}
+	| START		{: RESULT = "start"; :}
+	| PRECEDENCE	{: RESULT = "precedence"; :}
+	| LEFT		{: RESULT = "left"; :}
+	| RIGHT		{: RESULT = "right"; :}
+	| NONASSOC	{: RESULT = "nonassoc"; :}
+	| error
+	{:
+		lexer.emit_error("Illegal use of reserved word");
+		RESULT="ILLEGAL";
+	:}
+	;
+
+/*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */ 
+
+non_terminal ::= NON TERMINAL | NONTERMINAL;
+
+/*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */ 
+
+opt_semi ::= /* nothing */
+	| SEMI;
 
 /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */ 
 

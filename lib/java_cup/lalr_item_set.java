@@ -338,7 +338,10 @@ public class lalr_item_set {
       if (hashcode_cache == null)
 	{
           /* hash together codes from at most first 5 elements */
-          for (e = all(), cnt=0 ; e.hasMoreElements() && cnt<5; cnt++)
+	  //   CSA fix! we'd *like* to hash just a few elements, but
+	  //   that means equal sets will have inequal hashcodes, which
+	  //   we're not allowed (by contract) to do.  So hash them all.
+          for (e = all(), cnt=0 ; e.hasMoreElements() /*&& cnt<5*/; cnt++)
 	    result ^= ((lalr_item)e.nextElement()).hashCode();
 
 	  hashcode_cache = new Integer(result);

@@ -229,9 +229,9 @@ public class emit {
   protected static void emit_package(PrintWriter out)
     {
       /* generate a package spec if we have a name for one */
-      if (package_name != null) 
-	out.println("package " + package_name + ";\n");
-
+      if (package_name != null) {
+	out.println("package " + package_name + ";"); out.println();
+      }
     }
 
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
@@ -275,14 +275,15 @@ public class emit {
 	  term = (terminal)e.nextElement();
 
 	  /* output a constant decl for the terminal */
-	  out.println("  static final int " + term.name() + " = " + 
+	  out.println("  public static final int " + term.name() + " = " + 
 		      term.index() + ";");
 	}
 
       /* do the non terminals if they want them (parser doesn't need them) */
       if (emit_non_terms)
 	{
-          out.println("\n  /* non terminals */");
+          out.println();
+          out.println("  /* non terminals */");
 
           /* walk over the non terminals */       /* later might sort these */
           for (Enumeration e = non_terminal.all(); e.hasMoreElements(); )
@@ -296,7 +297,8 @@ public class emit {
 	}
 
       /* end of class */
-      out.println("}\n");
+      out.println("}");
+      out.println();
 
       symbols_time = System.currentTimeMillis() - start_time;
     }
@@ -328,10 +330,15 @@ public class emit {
           out.println(action_code);
 	}
 
+      /* field for parser object */
+      out.println("  private final "+parser_class_name+" parser;");
+
       /* constructor */
       out.println();
       out.println("  /** Constructor */");
-      out.println("  " + pre("actions") + "() { }");
+      out.println("  " + pre("actions") + "("+parser_class_name+" parser) {");
+      out.println("    this.parser = parser;");
+      out.println("  }");
 
       /* action method head */
       out.println();
@@ -465,7 +472,8 @@ public class emit {
       out.println("    }");
 
       /* end of class */
-      out.println("}\n");
+      out.println("}");
+      out.println();
 
       action_code_time = System.currentTimeMillis() - start_time;
     }
@@ -482,11 +490,6 @@ public class emit {
 
       long start_time = System.currentTimeMillis();
 
-      /* do the top of the table */
-      out.println();
-      out.println("  /** production table */");
-      out.println("  protected static final short _production_table[][] = {"); 
-
       /* collect up the productions in order */
       all_prods = new production[production.number()];
       for (Enumeration p = production.all(); p.hasMoreElements(); )
@@ -495,34 +498,26 @@ public class emit {
 	  all_prods[prod.index()] = prod;
 	}
 
-      /* do one entry per production */
-      out.print("    ");
+      // make short[][]
+      short[][] prod_table = new short[production.number()][2];
       for (int i = 0; i<production.number(); i++)
 	{
 	  prod = all_prods[i];
-
-	  /* make the table entry */
-	  out.print("    {");
-	  out.print(/* lhs symbol # */ prod.lhs().the_symbol().index() + ", ");
-	  out.print(/* rhs size */     prod.rhs_length() + "}");
-
-	  /* put in a comma if we aren't at the end */
-	  if (i < production.number()-1) out.print(", ");
-
-	  /* 5 entries per line */
-	  if ((i+1) % 5 == 0) 
-	    {
-	      out.println();
-	      out.print("    ");
-	    }
+	  // { lhs symbol , rhs size }
+	  prod_table[i][0] = (short) prod.lhs().the_symbol().index();
+	  prod_table[i][1] = (short) prod.rhs_length();
 	}
-
-      /* finish off the table initializer */
-      out.println("  };");
+      /* do the top of the table */
+      out.println();
+      out.println("  /** Production table. */");
+      out.println("  protected static final short _production_table[][] = ");
+      out.print  ("    unpackFromStrings(");
+      do_table_as_string(out, prod_table);
+      out.println(");");
 
       /* do the public accessor method */
       out.println();
-      out.println("  /** access to production table */");
+      out.println("  /** Access to production table. */");
       out.println("  public short[][] production_table() " + 
 						 "{return _production_table;}");
 
@@ -548,10 +543,8 @@ public class emit {
 
       long start_time = System.currentTimeMillis();
 
-      out.println();
-      out.println("  /** parse action table */");
-      out.println("  protected static final short[][] _action_table = {"); 
-
+      /* collect values for the action table */
+      short[][] action_table = new short[act_tab.num_states()][];
       /* do each state (row) of the action table */
       for (int i = 0; i < act_tab.num_states(); i++)
 	{
@@ -564,7 +557,9 @@ public class emit {
 	  else
 	    row.default_reduce = -1;
 
-	  out.print("    /*" + i + "*/{");
+	  /* make temporary table for the row. */
+	  short[] temp_table = new short[2*row.size()];
+	  int nentries = 0;
 
 	  /* do each column */
 	  for (int j = 0; j < row.size(); j++)
@@ -580,8 +575,10 @@ public class emit {
 		  /* shifts get positive entries of state number + 1 */
 		  if (act.kind() == parse_action.SHIFT)
 		    {
-		      out.print(j + "," + 
-				(((shift_action)act).shift_to().index() + 1) + ",");
+		      /* make entry */
+		      temp_table[nentries++] = (short) j;
+		      temp_table[nentries++] = (short)
+			(((shift_action)act).shift_to().index() + 1);
 		    }
 
 		  /* reduce actions get negated entries of production# + 1 */
@@ -589,8 +586,11 @@ public class emit {
 		    {
 		      /* if its the default entry let it get defaulted out */
 		      red = ((reduce_action)act).reduce_with().index();
-		      if (red != row.default_reduce)
-		        out.print(j + "," + (-(red+1)) + ",");
+		      if (red != row.default_reduce) {
+			/* make entry */
+			temp_table[nentries++] = (short) j;
+			temp_table[nentries++] = (short) (-(red+1));
+		      }
 		    } else if (act.kind() == parse_action.NONASSOC)
 		      {
 			/* do nothing, since we just want a syntax error */
@@ -602,19 +602,29 @@ public class emit {
 		}
 	    }
 
+	  /* now we know how big to make the row */
+	  action_table[i] = new short[nentries + 2];
+	  System.arraycopy(temp_table, 0, action_table[i], 0, nentries);
+
 	  /* finish off the row with a default entry */
+	  action_table[i][nentries++] = -1;
 	  if (row.default_reduce != -1)
-	    out.println("-1," + (-(row.default_reduce+1)) + "},");
+	    action_table[i][nentries++] = (short) (-(row.default_reduce+1));
 	  else
-	    out.println("-1,0},");
+	    action_table[i][nentries++] = 0;
 	}
 
       /* finish off the init of the table */
-      out.println("  };");
+      out.println();
+      out.println("  /** Parse-action table. */");
+      out.println("  protected static final short[][] _action_table = "); 
+      out.print  ("    unpackFromStrings(");
+      do_table_as_string(out, action_table);
+      out.println(");");
 
       /* do the public accessor method */
       out.println();
-      out.println("  /** access to parse action table */");
+      out.println("  /** Access to parse-action table. */");
       out.println("  public short[][] action_table() {return _action_table;}");
 
       action_table_time = System.currentTimeMillis() - start_time;
@@ -635,15 +645,14 @@ public class emit {
 
       long start_time = System.currentTimeMillis();
 
-      out.println();
-      out.println("  /** reduce_goto table */");
-      out.println("  protected static final short[][] _reduce_table = {"); 
-
+      /* collect values for reduce-goto table */
+      short[][] reduce_goto_table = new short[red_tab.num_states()][];
       /* do each row of the reduce-goto table */
       for (int i=0; i<red_tab.num_states(); i++)
 	{
-	  out.print("    /*" + i + "*/{");
-
+	  /* make temporary table for the row. */
+	  short[] temp_table = new short[2*red_tab.under_state[i].size()];
+	  int nentries = 0;
 	  /* do each entry in the row */
 	  for (int j=0; j<red_tab.under_state[i].size(); j++)
 	    {
@@ -654,25 +663,86 @@ public class emit {
 	      if (goto_st != null)
 		{
 		  /* make entries for the index and the value */
-		  out.print(j + "," + goto_st.index() + ",");
+		  temp_table[nentries++] = (short) j;
+		  temp_table[nentries++] = (short) goto_st.index();
 		}
 	    }
+	  /* now we know how big to make the row. */
+	  reduce_goto_table[i] = new short[nentries+2];
+	  System.arraycopy(temp_table, 0, reduce_goto_table[i], 0, nentries);
 
 	  /* end row with default value */
-	  out.println("-1,-1},");
+	  reduce_goto_table[i][nentries++] = -1;
+	  reduce_goto_table[i][nentries++] = -1;
 	}
 
-      /* finish off the init of the table */
-      out.println("  };");
+      /* emit the table. */
+      out.println();
+      out.println("  /** <code>reduce_goto</code> table. */");
+      out.println("  protected static final short[][] _reduce_table = "); 
+      out.print  ("    unpackFromStrings(");
+      do_table_as_string(out, reduce_goto_table);
+      out.println(");");
 
       /* do the public accessor method */
       out.println();
-      out.println("  /** access to reduce_goto table */");
+      out.println("  /** Access to <code>reduce_goto</code> table. */");
       out.println("  public short[][] reduce_table() {return _reduce_table;}");
       out.println();
 
       goto_table_time = System.currentTimeMillis() - start_time;
     }
+
+  // print a string array encoding the given short[][] array.
+  protected static void do_table_as_string(PrintWriter out, short[][] sa) {
+    out.println("new String[] {");
+    out.print("    \"");
+    int nchar=0, nbytes=0;
+    nbytes+=do_escaped(out, (char)(sa.length>>16));
+    nchar  =do_newline(out, nchar, nbytes);
+    nbytes+=do_escaped(out, (char)(sa.length&0xFFFF));
+    nchar  =do_newline(out, nchar, nbytes);
+    for (int i=0; i<sa.length; i++) {
+	nbytes+=do_escaped(out, (char)(sa[i].length>>16));
+	nchar  =do_newline(out, nchar, nbytes);
+	nbytes+=do_escaped(out, (char)(sa[i].length&0xFFFF));
+	nchar  =do_newline(out, nchar, nbytes);
+	for (int j=0; j<sa[i].length; j++) {
+	  // contents of string are (value+2) to allow for common -1, 0 cases
+	  // (UTF-8 encoding is most efficient for 0<c<0x80)
+	  nbytes+=do_escaped(out, (char)(2+sa[i][j]));
+	  nchar  =do_newline(out, nchar, nbytes);
+	}
+    }
+    out.print("\" }");
+  }
+  // split string if it is very long; start new line occasionally for neatness
+  protected static int do_newline(PrintWriter out, int nchar, int nbytes) {
+    if (nbytes > 65500)  { out.println("\", "); out.print("    \""); }
+    else if (nchar > 11) { out.println("\" +"); out.print("    \""); }
+    else return nchar+1;
+    return 0;
+  }
+  // output an escape sequence for the given character code.
+  protected static int do_escaped(PrintWriter out, char c) {
+    StringBuffer escape = new StringBuffer();
+    if (c <= 0xFF) {
+      escape.append(Integer.toOctalString(c));
+      while(escape.length() < 3) escape.insert(0, '0');
+    } else {
+      escape.append(Integer.toHexString(c));
+      while(escape.length() < 4) escape.insert(0, '0');
+      escape.insert(0, 'u');
+    }
+    escape.insert(0, '\\');
+    out.print(escape.toString());
+
+    // return number of bytes this takes up in UTF-8 encoding.
+    if (c == 0) return 2;
+    if (c >= 0x01 && c <= 0x7F) return 1;
+    if (c >= 0x80 && c <= 0x7FF) return 2;
+    return 3;
+  }
 
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
 
@@ -683,6 +753,7 @@ public class emit {
    * @param start_st        start state of the parse machine.
    * @param start_prod      start production of the grammar.
    * @param compact_reduces do we use most frequent reduce as default?
+   * @param suppress_scanner should scanner be suppressed for compatibility?
    */
   public static void parser(
     PrintWriter        out, 
@@ -690,7 +761,8 @@ public class emit {
     parse_reduce_table reduce_table,
     int                start_st,
     production         start_prod,
-    boolean            compact_reduces)
+    boolean            compact_reduces,
+    boolean            suppress_scanner)
     throws internal_error
     {
       long start_time = System.currentTimeMillis();
@@ -711,13 +783,22 @@ public class emit {
 
       /* class header */
       out.println();
+      out.println("/** "+version.title_str+" generated parser.");
+      out.println("  * @version " + new Date());
+      out.println("  */");
       out.println("public class " + parser_class_name + 
 		  " extends java_cup.runtime.lr_parser {");
 
-      /* constructor */
+      /* constructors [CSA/davidm, 24-jul-99] */
       out.println();
-      out.println("  /** constructor */");
+      out.println("  /** Default constructor. */");
       out.println("  public " + parser_class_name + "() {super();}");
+      if (!suppress_scanner) {
+	  out.println();
+	  out.println("  /** Constructor which sets the default scanner. */");
+	  out.println("  public " + parser_class_name + 
+		      "(java_cup.runtime.Scanner s) {super(s);}");
+      }
 
       /* emit the various tables */
       emit_production_table(out);
@@ -725,20 +806,20 @@ public class emit {
       do_reduce_table(out, reduce_table);
 
       /* instance of the action encapsulation class */
-      out.println("  /** instance of action encapsulation class */");
+      out.println("  /** Instance of action encapsulation class. */");
       out.println("  protected " + pre("actions") + " action_obj;");
       out.println();
 
       /* action object initializer */
-      out.println("  /** action encapsulation object initializer */");
+      out.println("  /** Action encapsulation object initializer. */");
       out.println("  protected void init_actions()");
       out.println("    {");
-      out.println("      action_obj = new " + pre("actions") + "();");
+      out.println("      action_obj = new " + pre("actions") + "(this);");
       out.println("    }");
       out.println();
 
       /* access to action code */
-      out.println("  /** invoke a user supplied parse action */");
+      out.println("  /** Invoke a user supplied parse action. */");
       out.println("  public java_cup.runtime.Symbol do_action(");
       out.println("    int                        act_num,");
       out.println("    java_cup.runtime.lr_parser parser,");
@@ -754,21 +835,21 @@ public class emit {
 
 
       /* method to tell the parser about the start state */
-      out.println("  /** start state */");
+      out.println("  /** Indicates start state. */");
       out.println("  public int start_state() {return " + start_st + ";}");
 
       /* method to indicate start production */
-      out.println("  /** start production */");
+      out.println("  /** Indicates start production. */");
       out.println("  public int start_production() {return " + 
 		     start_production.index() + ";}");
       out.println();
 
       /* methods to indicate EOF and error symbol indexes */
-      out.println("  /** EOF Symbol index */");
+      out.println("  /** <code>EOF</code> Symbol index. */");
       out.println("  public int EOF_sym() {return " + terminal.EOF.index() + 
 					  ";}");
       out.println();
-      out.println("  /** error Symbol index */");
+      out.println("  /** <code>error</code> Symbol index. */");
       out.println("  public int error_sym() {return " + terminal.error.index() +
 					  ";}");
       out.println();
@@ -777,7 +858,7 @@ public class emit {
       if (init_code != null)
 	{
           out.println();
-	  out.println("  /** user initialization */");
+	  out.println("  /** User initialization code. */");
 	  out.println("  public void user_init() throws java.lang.Exception");
 	  out.println("    {");
 	  out.println(init_code);
@@ -788,7 +869,7 @@ public class emit {
       if (scan_code != null)
 	{
           out.println();
-	  out.println("  /** scan to get the next Symbol */");
+	  out.println("  /** Scan to get the next Symbol. */");
 	  out.println("  public java_cup.runtime.Symbol scan()");
 	  out.println("    throws java.lang.Exception");
 	  out.println("    {");

@@ -225,6 +225,11 @@ public class production {
   /** Access to all productions. */
   public static Enumeration all() {return _all.elements();}
 
+    /** Lookup a production by index. */
+  public static production find(int indx) {
+    return (production) _all.get(new Integer(indx));
+  }
+
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
  
   /** Total number of productions. */

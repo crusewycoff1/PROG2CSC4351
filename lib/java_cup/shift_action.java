@@ -75,7 +75,7 @@ public class shift_action extends parse_action {
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
 
   /** Convert to a string. */
-  public String toString() {return "SHIFT(" + shift_to().index() + ")";}
+  public String toString() {return "SHIFT(to state " + shift_to().index() + ")";}
 
   /*-----------------------------------------------------------*/
 

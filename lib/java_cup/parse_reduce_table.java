@@ -73,8 +73,8 @@ public class parse_reduce_table {
 	      /* if it has action in it, print it */
 	      if (goto_st != null)
 		{
-		  result += col + ":"; 
-		  result += goto_st.index();
+		  result += " [non term " + col + "->"; 
+		  result += "state " + goto_st.index() + "]";
 
 		  /* end the line after the 3rd one */
 		  cnt++;

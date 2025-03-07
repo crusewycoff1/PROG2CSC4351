@@ -2,26 +2,34 @@
 
 package java_cup.simple_calc;
 
-import java_cup.runtime.*;
+import java_cup.runtime.Symbol;
 
-public class scanner {
+public class scanner implements java_cup.runtime.Scanner {
+  final java.io.InputStream instream;
+
+  public scanner(java.io.InputStream is) throws java.io.IOException {
+    instream = is;
+  }
+  public scanner() throws java.io.IOException { this(System.in); }
+
   /* single lookahead character */
-  protected static int next_char;
+  protected int next_char = -2;
 
   /* advance input by one character */
-  protected static void advance()
+  protected void advance()
     throws java.io.IOException
-    { next_char = System.in.read(); }
+    { next_char = instream.read(); }
 
   /* initialize the scanner */
-  public static void init()
+  private void init()
     throws java.io.IOException
     { advance(); }
 
   /* recognize and return the next complete token */
-  public static Symbol next_token()
+  public Symbol next_token()
     throws java.io.IOException
     {
+      if (next_char==-2) init(); // set stuff up first time we are called.
       for (;;)
         switch (next_char)
 	  {

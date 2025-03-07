@@ -70,14 +70,17 @@ import java.util.Stack;
  *  <dd> Code to initialize a special object that encapsulates user supplied
  *       actions (this object is used by do_action() to actually carry out the 
  *       actions).
- *  <dt> Symbol scan()
- *  <dd> Used to get the next input Symbol from the scanner.
  *  </dl>
  *  
  *  In addition to these routines that <i>must</i> be supplied by the 
  *  generated subclass there are also a series of routines that <i>may</i> 
  *  be supplied.  These include:
  *  <dl>
+ *  <dt> Symbol scan()
+ *  <dd> Used to get the next input Symbol from the scanner.
+ *  <dt> Scanner getScanner()
+ *  <dd> Used to provide a scanner for the default implementation of
+ *       scan().
  *  <dt> int error_sync_size()
  *  <dd> This determines how many Symbols past the point of an error 
  *       must be parsed without error in order to consider a recovery to 
@@ -120,6 +123,12 @@ public abstract class lr_parser {
     {
       /* nothing to do here */
     }
+
+  /** Constructor that sets the default scanner. [CSA/davidm] */
+  public lr_parser(Scanner s) {
+    this(); /* in case default constructor someday does something */
+    setScanner(s);
+  }
 
   /*-----------------------------------------------------------*/
   /*--- (Access to) Static (Class) Variables ------------------*/
@@ -256,6 +265,23 @@ public abstract class lr_parser {
   /** Direct reference to the reduce-goto table. */
   protected short[][] reduce_tab;
 
+  /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
+
+  /** This is the scanner object used by the default implementation
+   *  of scan() to get Symbols.  To avoid name conflicts with existing
+   *  code, this field is private. [CSA/davidm] */
+  private Scanner _scanner;
+
+  /**
+   * Simple accessor method to set the default scanner.
+   */
+  public void setScanner(Scanner s) { _scanner = s; }
+
+  /**
+   * Simple accessor method to get the default scanner.
+   */
+  public Scanner getScanner() { return _scanner; }
+
   /*-----------------------------------------------------------*/
   /*--- General Methods ---------------------------------------*/
   /*-----------------------------------------------------------*/
@@ -299,11 +325,16 @@ public abstract class lr_parser {
 
   /** Get the next Symbol from the input (supplied by generated subclass).
    *  Once end of file has been reached, all subsequent calls to scan 
-   *  should return an EOF Symbol (which is Symbol number 0).  This method
-   *  is supplied by the generator using using the code declared in the 
-   *  "scan with" clause.
+   *  should return an EOF Symbol (which is Symbol number 0).  By default
+   *  this method returns getScanner().next_token(); this implementation
+   *  can be overriden by the generated parser using the code declared in
+   *  the "scan with" clause.  Do not recycle objects; every call to
+   *  scan() should return a fresh object.
    */
-  public abstract Symbol scan() throws java.lang.Exception;
+  public Symbol scan() throws java.lang.Exception {
+    Symbol sym = getScanner().next_token();
+    return (sym!=null) ? sym : new Symbol(EOF_sym());
+  }
 
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
 
@@ -510,6 +541,10 @@ public abstract class lr_parser {
       /* continue until we are told to stop */
       for (_done_parsing = false; !_done_parsing; )
 	{
+	  /* Check current token for freshness. */
+	  if (cur_token.used_by_parser)
+	    throw new Error("Symbol recycling detected (fix your scanner).");
+
 	  /* current state is always on the top of the stack */
 
 	  /* look up action out of the current state with the current input */
@@ -520,6 +555,7 @@ public abstract class lr_parser {
 	    {
 	      /* shift to the encoded state by pushing it on the stack */
 	      cur_token.parse_state = act-1;
+	      cur_token.used_by_parser = true;
 	      stack.push(cur_token);
 	      tos++;
 
@@ -548,6 +584,7 @@ public abstract class lr_parser {
 
 	      /* shift to that state */
 	      lhs_sym.parse_state = act;
+	      lhs_sym.used_by_parser = true;
 	      stack.push(lhs_sym);
 	      tos++;
 	    }
@@ -635,6 +672,22 @@ public abstract class lr_parser {
 
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
 
+  /** Do debug output for stack state. [CSA]
+   */
+  public void debug_stack() {
+      StringBuffer sb=new StringBuffer("## STACK:");
+      for (int i=0; i<stack.size(); i++) {
+	  Symbol s = (Symbol) stack.elementAt(i);
+	  sb.append(" <state "+s.parse_state+", sym "+s.sym+">");
+	  if ((i%3)==2 || (i==(stack.size()-1))) {
+	      debug_message(sb.toString());
+	      sb = new StringBuffer("         ");
+	  }
+      }
+  }
+
+  /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
+
   /** Perform a parse with debugging output.  This does exactly the
    *  same things as parse(), except that it calls debug_shift() and
    *  debug_reduce() when shift and reduce moves are taken by the parser
@@ -678,7 +731,12 @@ public abstract class lr_parser {
       /* continue until we are told to stop */
       for (_done_parsing = false; !_done_parsing; )
 	{
+	  /* Check current token for freshness. */
+	  if (cur_token.used_by_parser)
+	    throw new Error("Symbol recycling detected (fix your scanner).");
+
 	  /* current state is always on the top of the stack */
+	  //debug_stack();
 
 	  /* look up action out of the current state with the current input */
 	  act = get_action(((Symbol)stack.peek()).parse_state, cur_token.sym);
@@ -688,6 +746,7 @@ public abstract class lr_parser {
 	    {
 	      /* shift to the encoded state by pushing it on the stack */
 	      cur_token.parse_state = act-1;
+	      cur_token.used_by_parser = true;
 	      debug_shift(cur_token);
 	      stack.push(cur_token);
 	      tos++;
@@ -717,9 +776,13 @@ public abstract class lr_parser {
 	      
 	      /* look up the state to go to from the one popped back to */
 	      act = get_reduce(((Symbol)stack.peek()).parse_state, lhs_sym_num);
+	      debug_message("# Reduce rule: top state " +
+			     ((Symbol)stack.peek()).parse_state +
+			     ", lhs sym " + lhs_sym_num + " -> state " + act); 
 
 	      /* shift to that state */
 	      lhs_sym.parse_state = act;
+	      lhs_sym.used_by_parser = true;
 	      stack.push(lhs_sym);
 	      tos++;
 
@@ -807,8 +870,13 @@ public abstract class lr_parser {
 	    }
 
 	  /* otherwise, we consume another Symbol and try again */
+	  // BUG FIX by Bruce Hutton
+	  // Computer Science Department, University of Auckland,
+	  // Auckland, New Zealand.
+	  // It is the first token that is being consumed, not the one 
+	  // we were up to parsing
 	  if (debug) 
-	  debug_message("# Consuming Symbol #" + cur_err_token().sym);
+	      debug_message("# Consuming Symbol #" + lookahead[ 0 ].sym);
 	  restart_lookahead();
 	}
 
@@ -883,6 +951,7 @@ public abstract class lr_parser {
       /* build and shift a special error Symbol */
       error_token = new Symbol(error_sym(), left_pos, right_pos);
       error_token.parse_state = act-1;
+      error_token.used_by_parser = true;
       stack.push(error_token);
       tos++;
 
@@ -949,8 +1018,12 @@ public abstract class lr_parser {
 	lookahead[i-1] = lookahead[i];
 
       /* read a new Symbol into the last spot */
-      cur_token = scan();
+      // BUG Fix by Bruce Hutton
+      // Computer Science Department, University of Auckland,
+      // Auckland, New Zealand. [applied 5-sep-1999 by csa]
+      // The following two lines were out of order!!
       lookahead[error_sync_size()-1] = cur_token;
+      cur_token = scan();
 
       /* reset our internal position marker */
       lookahead_pos = 0;
@@ -1075,6 +1148,7 @@ public abstract class lr_parser {
 	    {
 	      /* shift to the encoded state by pushing it on the stack */
 	      cur_err_token().parse_state = act-1;
+	      cur_err_token().used_by_parser = true;
 	      if (debug) debug_shift(cur_err_token());
 	      stack.push(cur_err_token());
 	      tos++;
@@ -1085,7 +1159,10 @@ public abstract class lr_parser {
 		  if (debug) debug_message("# Completed reparse");
 
 		  /* scan next Symbol so we can continue parse */
-		  cur_token = scan();
+		  // BUGFIX by Chris Harris <ckharris@ucsd.edu>:
+		  //   correct a one-off error by commenting out
+		  //   this next line.
+		  /*cur_token = scan();*/
 
 		  /* go back to normal parser */
 		  return;
@@ -1118,6 +1195,7 @@ public abstract class lr_parser {
 
 	      /* shift to that state */
 	      lhs_sym.parse_state = act;
+	      lhs_sym.used_by_parser = true;
 	      stack.push(lhs_sym);
 	      tos++;
 	       
@@ -1138,5 +1216,23 @@ public abstract class lr_parser {
 
   /*-----------------------------------------------------------*/
 
+  /** Utility function: unpacks parse tables from strings */
+  protected static short[][] unpackFromStrings(String[] sa)
+    {
+      // Concatanate initialization strings.
+      StringBuffer sb = new StringBuffer(sa[0]);
+      for (int i=1; i<sa.length; i++)
+	sb.append(sa[i]);
+      int n=0; // location in initialization string
+      int size1 = (((int)sb.charAt(n))<<16) | ((int)sb.charAt(n+1)); n+=2;
+      short[][] result = new short[size1][];
+      for (int i=0; i<size1; i++) {
+        int size2 = (((int)sb.charAt(n))<<16) | ((int)sb.charAt(n+1)); n+=2;
+        result[i] = new short[size2];
+        for (int j=0; j<size2; j++)
+          result[i][j] = (short) (sb.charAt(n++)-2);
+      }
+      return result;
+    }
 }
 
