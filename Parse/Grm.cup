@@ -1,9 +1,11 @@
 package Parse;
 import java.util.ArrayList;
 import java_cup.runtime.*;
+import Symbol.Symbol;
 
-action code {: static Symbol.Symbol sym(String s) {
-	         return Symbol.Symbol.symbol(s);
+action code {:
+    static Symbol sym(String s) {
+	         return Symbol.symbol(s);
 	        }
 	    :};
 
