@@ -3,8 +3,8 @@ import java.util.ArrayList;
 import Symbol.Symbol;
 
 action code {:
-    static Symbol.Symbol sym(String s) {
-	         return Symbol.Symbol.symbol(s);
+    static Symbol sym(String s) {
+	         return Symbol.symbol(s);
 	        }
 	    :};
 
