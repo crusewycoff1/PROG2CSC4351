@@ -17,7 +17,7 @@ public class Parse {
       /* open input files, etc. here */
 
       try {
-	absyn = (Absyn.Exp)(parser./*debug_*/parse().value);
+	absyn = (Absyn.Exp)(parser.parse().value);
       } catch (Throwable e) {
 	e.printStackTrace();
 	throw new Error(e.toString());
