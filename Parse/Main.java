@@ -17,5 +17,4 @@ public class Main {
             writer.flush();
         }
     }
-
 }

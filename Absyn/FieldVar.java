@@ -1,7 +1,7 @@
 package Absyn;
-import Symbol.Symbol;
-public class FieldVar extends Var {
-   public Var var;
-   public Symbol field;
-   public FieldVar(int p, Var v, Symbol f) {pos=p; var=v; field=f;}
+
+public class FieldVar extends Dec {
+   public NameTy var;
+   public Var field;
+   public FieldVar(int p, NameTy v, Var f) {pos=p; var=v; field=f;}
 }

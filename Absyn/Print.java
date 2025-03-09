@@ -27,7 +27,7 @@ public class Print {
     out.println(s);
   }
 
-  void prVar(SimpleVar v, int d) {
+  void prVar(NameTy v, int d) {
     say("SimpleVar("); say(v.name.toString()); say(")");
   }
   
@@ -47,14 +47,14 @@ public class Print {
   void prVar(Var v, int d) {
     indent(d);
     if (v instanceof SimpleVar) prVar((SimpleVar) v, d);
-    else if (v instanceof FieldVar) prVar((FieldVar) v, d);
+    /*else if (v instanceof FieldVar) prVar((FieldVar) v, d); */
     else if (v instanceof SubscriptVar) prVar((SubscriptVar) v, d);
     else throw new Error("Print.prVar");
   }
   
   void prExp(OpExp e, int d) {
     sayln("OpExp(");
-    indent(d+1); 
+    indent(d+1);
     switch(e.oper) {
     case OpExp.PLUS: say("PLUS"); break;
     case OpExp.MINUS: say("MINUS"); break;
@@ -195,6 +195,7 @@ public class Print {
   /* Print Exp class types. Indent d spaces. */
   public void prExp(Exp e, int d) {
     indent(d);
+    say(e.getClass().getName()); 
     if (e instanceof OpExp) prExp((OpExp)e, d);
     else if (e instanceof VarExp) prExp((VarExp) e, d);
     else if (e instanceof NilExp) prExp((NilExp) e, d);
@@ -212,6 +213,7 @@ public class Print {
     else if (e instanceof ArrayExp) prExp((ArrayExp) e, d);
     else if (e instanceof UnaryExp) prExp((UnaryExp) e, d);
     else if (e instanceof StructExp) prExp((StructExp) e, d);
+    else if (e instanceof DecList) prExp((DecList) e, d);
     else throw new Error("Print.prExp");
   }
 
@@ -224,7 +226,7 @@ public class Print {
 	indent(i+1); sayln(d.result.name.toString());
       }
       prExp(d.body, i+1); sayln(",");
-      indent(i+1); prDec(d.next, i+1);
+      indent(i+1); prDec(d, i+1);
     }
     say(")");
   }
