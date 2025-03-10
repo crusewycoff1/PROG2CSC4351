@@ -269,17 +269,51 @@ public class Print {
         say(")");
     }
 
-  void prExp(StructExp v, int d) {
-    sayln("StructExp(");
-    indent(d + 1);
-    say("Var:");
-    prVar(v.var, d + 1);
-    sayln(",");
-    indent(d + 1);
-    say("Index:");
-    prExp(v.e, d + 1);
-    say(")");
-  }
+    void prExp(StructExp v, int d) {
+        sayln("StructExp(");
+        indent(d + 1);
+        say("Var:");
+        prVar(v.var, d + 1);
+        sayln(",");
+        indent(d + 1);
+        say("Index:");
+        prExp(v.e, d + 1);
+        say(")");
+    }
+
+    void prExp(DecList v, int d) {
+        indent(d);
+        say("DecList(");
+        if (v != null) {
+            sayln("");
+            prDec(v.head, d + 1);
+            if (v.tail != null) {
+                sayln(",");
+                prDecList(v.tail, d + 1);
+            }
+        }
+        say(")");
+    }
+
+    void prExp(CompoundStmt v, int d) {
+        indent(d);
+        sayln("CompoundStmt(");
+        if (v != null) {
+            sayln("");
+            prDecList(v.decLs, d + 1);
+            sayln(",");
+            prStmtList(v.stmtLs, d + 1);
+        }
+        say(")");
+    }
+
+    void prExp(PostfixExpLs e, int d) {
+        sayln("PostfixExpLs(");
+        prExp(e.exp1, d + 1);
+        sayln(",");
+        prExp(e.exp2, d + 1);
+        say(")");
+    }
 
     /* Print Exp class types. Indent d spaces. */
     public void prExp(Exp e, int d) {
