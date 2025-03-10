@@ -588,11 +588,27 @@ public class Print {
         }
     }
 
+    void prDec(StructList d, int i) {
+        if (d != null) {
+            say("TypeStruct(");
+            say(d.name.toString());
+            sayln(",");
+            prFieldlist(d.tail, i + 1);
+            if (d.tail != null) {
+                sayln(",");
+                indent(i + 1);
+                prFieldlist(d.tail, i + 1);
+            }
+            say(")");
+        }
+    }
+
     void prDec(Dec d, int i) {
         indent(i);
         if (d instanceof FunctionDec) prDec((FunctionDec) d, i);
         else if (d instanceof VarDec) prDec((VarDec) d, i);
         else if (d instanceof TypeDec) prDec((TypeDec) d, i);
+        else if (d instanceof StructList) prDec((StructList) d, i);
         else throw new Error("Print.prDec");
     }
 
