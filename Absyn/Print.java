@@ -264,6 +264,7 @@ public class Print {
         else if (e instanceof StructExp) prExp((StructExp) e, d);
         else if (e instanceof DecList) prExp((DecList) e, d);
         else if (e instanceof CompoundStmt) prExp((CompoundStmt) e, d);
+        else if (e instanceof PostfixExpLs) prExp((PostfixExpLs) e, d);
         else throw new Error("Print.prExp: " + e.getClass());
     }
 
