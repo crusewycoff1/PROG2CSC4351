@@ -2,4 +2,4 @@
 clear
 make clean
 make
-java -cp lib:../:./ Parse/Main.java test.c
+java Parse/Main.java test.c

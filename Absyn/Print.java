@@ -42,7 +42,6 @@ public class Print {
         else if (e instanceof ExpressionStmt) prExp((ExpressionStmt) e, d);
         else if (e instanceof ForStmt) prExp((ForStmt) e, d);
         else if (e instanceof IfExp) prExp((IfExp) e, d);
-        else if (e instanceof InitializerList) prExp((InitializerList) e, d);
         else if (e instanceof IntExp) prExp((IntExp) e, d);
         else if (e instanceof IterationStmt) prExp((IterationStmt) e, d);
         else if (e instanceof JumpStmt) prExp((JumpStmt) e, d);
@@ -227,20 +226,6 @@ public class Print {
         if (e.elseclause != null) { /* else is optional */
             sayln(",");
             prExp(e.elseclause, d + 1);
-        }
-        say(")");
-    }
-
-    void prExp(InitializerList v, int d) {
-        indent(d);
-        sayln("InitializerList(");
-        if (v != null) {
-            sayln("");
-            prExp(v.assignExp, d + 1);
-            if (v.initls != null) {
-                sayln(",");
-                prExp(v.initls, d + 1);
-            }
         }
         say(")");
     }

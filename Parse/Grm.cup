@@ -44,14 +44,13 @@ non terminal Absyn.Exp          primary_expression, assignment_expression, postf
 cast_expression, unary_expression, multiplicative_expression, additive_expression, shift_expression,
 relational_expression, equality_expression, and_expression, exclusive_or_expression,
 inclusive_or_expression, logical_and_expression, logical_or_expression, expression,
-conditional_expression, constant_expression, initialization, enumerator;
+conditional_expression, constant_expression, initializer, initialization, enumerator;
 
 non terminal Absyn.Var          Var, name;
 non terminal Absyn.Statement          statement, compound_statement, labeled_statement,
 expression_statement, selection_statement, iteration_statement, jump_statement;
 non terminal Absyn.StmtList    statement_list;
 non terminal Absyn.DecList   declaration_list;
-non terminal Absyn.InitializerList  initializer_list, initializer;
 non terminal Absyn.NameTy type_name, type;
 non terminal Absyn.FieldList parameters, parameter_list, type_parameters,
 parameter_type_list, struct_or_union_declarator, struct_declaration_list;
@@ -62,7 +61,7 @@ non terminal Absyn.ArgExpList argument_expression_list;
 non terminal  expression_array_type, bitfield_list,
 bitfield_value, empty_array_type_list,
 empty_array_type, expression_array_type_list, type_augments, brackets_list, pointer_list,
-struct_or_union;
+struct_or_union, initializer_list;
 
 
 start with declaration_list;
@@ -203,16 +202,13 @@ parameter_type_list ::= type:t
                         {:RESULT = new Absyn.FieldList(0, t, null, pl);:}
                       ;
 
-initializer_list ::= initializer:i
-                      {:RESULT = new Absyn.InitializerList(0, i, null);:}
-                   | initializer_list:il COMMA initializer:i
-                    {:RESULT = new Absyn.InitializerList(0, i, il);:}
+initializer_list ::= initializer
+                   | initializer_list COMMA initializer
                    ;
 
 initializer ::= assignment_expression:e
-                {:RESULT = new Absyn.InitializerList(0, e, null);:}
-              | LBRACE initializer_list:il RBRACE
-                {:RESULT = il;:}
+                {:RESULT = e;:}
+              | LBRACE initializer_list RBRACE
               ;
 
 
@@ -465,5 +461,4 @@ jump_statement ::= GOTO Var:v SEMICOLON
                   | RETURN SEMICOLON
                   {: RESULT = new Absyn.JumpStmt(0, true, false, false, false); :}
                   ;
-
 
