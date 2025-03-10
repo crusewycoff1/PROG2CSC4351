@@ -3,5 +3,6 @@ package Absyn;
 public class StructExp extends Exp {
    public Var var;
    public Exp e;
-   public StructExp(int p, Var v, Exp ex) {pos=p; var=v; e=ex;}
+   boolean arrow;
+   public StructExp(int p, Var v, Exp ex, boolean airo) {pos=p; var=v; e=ex; arrow=airo;}
 }

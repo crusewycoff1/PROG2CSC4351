@@ -92,7 +92,7 @@ name ::= Var:v
   ;
 
 bitfield_list ::=
-        | bitfield_value bitfield_list
+        | bitfield_value:b bitfield_list:l
         ;
 
 bitfield_value ::= CONST
@@ -229,19 +229,19 @@ postfix_expression ::= primary_expression:e
   | postfix_expression:e1 LPAREN argument_expression_list:e2 RPAREN
     {: RESULT = new Absyn.PostfixExpLs(0,e1,e2); :}
   | postfix_expression:e LPAREN RPAREN
-    {: RESULT = new Absyn.PostfixExp(0,e, null);:}
+    {: RESULT = new Absyn.PostfixExp(0, e, null);:}
   | postfix_expression:e INCREMENT
     {:RESULT = new Absyn.UnaryExp(0, Absyn.UnaryExp.INCREMENT, e, false);:}
   | postfix_expression:e DECREMENT
     {:RESULT = new Absyn.UnaryExp(0, Absyn.UnaryExp.DECREMENT, e, false);:}
   | postfix_expression:e PERIOD Var:v
-    {:RESULT = new Absyn.StructExp(0, v, e); :}
+    {:RESULT = new Absyn.StructExp(0, v, e, false); :}
   | postfix_expression:e ARROW Var:v
-    {:RESULT = new Absyn.StructExp(0, v, e); :}
+    {:RESULT = new Absyn.StructExp(0, v, e, true); :}
   ;
 
 argument_expression_list ::= assignment_expression:e
-    {:RESULT = new Absyn.ArgExpList(0, e, null);:}
+      {:RESULT = new Absyn.ArgExpList(0, e, null);:}
     | argument_expression_list:al COMMA assignment_expression:e
       {:RESULT = new Absyn.ArgExpList(0, e, al);:}
     ;
@@ -437,25 +437,29 @@ iteration_statement ::= WHILE LPAREN expression:e RPAREN statement:s
                     | DO statement:s WHILE LPAREN expression:e RPAREN SEMICOLON
                     {: RESULT = new Absyn.DoWhileStmt(0, s, e); :}
                     | FOR LPAREN expression:e1 SEMICOLON expression:e2 SEMICOLON expression:e3 RPAREN statement:s
-                    {: RESULT = new Absyn.ForStmt(0, e1, e2, e3, s); :}
+                    {: RESULT = new Absyn.ForStmt(0, e1, e2, e3, s, true, true, true); :}
                     | FOR LPAREN expression:e1 SEMICOLON expression:e2 SEMICOLON RPAREN statement:s
-                    {: RESULT = new Absyn.ForStmt(0, e1, e2, null, s); :}
+                    {: RESULT = new Absyn.ForStmt(0, e1, e2, null, s, true, true, false); :}
                     | FOR LPAREN SEMICOLON expression:e SEMICOLON RPAREN statement:s
-                    {: RESULT = new Absyn.ForStmt(0, null, e, null, s); :}
+                    {: RESULT = new Absyn.ForStmt(0, null, e, null, s, false, true, false); :}
                     | FOR LPAREN SEMICOLON SEMICOLON RPAREN statement:s
-                    {: RESULT = new Absyn.ForStmt(0, null, null, null, s); :}
+                    {: RESULT = new Absyn.ForStmt(0, null, null, null, s, false, false, false); :}
                     | FOR LPAREN expression:e1 SEMICOLON SEMICOLON expression:e2 RPAREN statement:s
-                    {: RESULT = new Absyn.ForStmt(0, e1, null, e2, s); :}
+                    {: RESULT = new Absyn.ForStmt(0, e1, null, e2, s, true, false, true); :}
                     | FOR LPAREN SEMICOLON expression:e1 SEMICOLON expression:e2 RPAREN statement:s
-                    {: RESULT = new Absyn.ForStmt(0, null, e1, e2, s); :}
+                    {: RESULT = new Absyn.ForStmt(0, null, e1, e2, s, false, true, true); :}
                     ;
 
 jump_statement ::= GOTO Var:v SEMICOLON
-                  {: RESULT = new Absyn.JumpStmt(0, v); :}
+                  {: RESULT = new Absyn.JumpStmt(0, v, false, false, false, true); :}
                   | CONTINUE SEMICOLON
+                  {: RESULT = new Absyn.JumpStmt(0, false, false, true, false); :}
                   | BREAK SEMICOLON
+                  {: RESULT = new Absyn.JumpStmt(0, false, true, false, false); :}
                   | RETURN expression:e SEMICOLON
-                  {: RESULT = new Absyn.JumpStmt(0, e); :}
+                  {: RESULT = new Absyn.JumpStmt(0, e, true, false, false, false); :}
                   | RETURN SEMICOLON
+                  {: RESULT = new Absyn.JumpStmt(0, true, false, false, false); :}
                   ;
+
 
