@@ -52,45 +52,85 @@ public class Print {
         say(")");
     }
 
-  /* Print A_var types. Indent d spaces. */
-  void prVar(Var v, int d) {
-    indent(d);
-    if (v instanceof SimpleVar) prVar((SimpleVar) v, d);
-    /*else if (v instanceof FieldVar) prVar((FieldVar) v, d); */
-    else if (v instanceof SubscriptVar) prVar((SubscriptVar) v, d);
-    else throw new Error("Print.prVar");
-  }
-  
-  void prExp(OpExp e, int d) {
-    sayln("OpExp(");
-    indent(d+1);
-    switch(e.oper) {
-    case OpExp.PLUS: say("PLUS"); break;
-    case OpExp.MINUS: say("MINUS"); break;
-    case OpExp.MUL: say("MUL"); break;
-    case OpExp.DIV: say("DIV"); break;
-    case OpExp.EQ: say("EQ"); break;
-    case OpExp.NE: say("NE"); break;
-    case OpExp.LT: say("LT"); break;
-    case OpExp.LE: say("LE"); break;
-    case OpExp.GT: say("GT"); break;
-    case OpExp.GE: say("GE"); break;
-    case OpExp.MOD: say("MOD"); break;
-    case OpExp.RSHIFT: say("RSHIFT"); break;
-    case OpExp.LSHIFT: say("LSHIFT"); break;
-    case OpExp.BITWISEAND: say("BITWISEAND"); break;
-    case OpExp.BITWISEOR: say("BITWSEOR"); break;
-    case OpExp.BITWISEXOR: say("BITWISEXOR"); break;
-    case OpExp.AND: say("AND"); break;
-    case OpExp.OR: say("OR"); break;
-    case OpExp.COMMA: say("COMMA"); break;
-    default:
-      throw new Error("Print.prExp.OpExp");
+    /* Print A_var types. Indent d spaces. */
+    void prVar(Var v, int d) {
+        indent(d);
+        if (v instanceof SimpleVar) prVar(v, d);
+            /*else if (v instanceof FieldVar) prVar((FieldVar) v, d); */
+        else if (v instanceof SubscriptVar) prVar((SubscriptVar) v, d);
+        else throw new Error("Print.prVar");
     }
-    sayln(",");
-    prExp(e.left, d+1); sayln(",");
-    prExp(e.right, d+1); say(")");
-  }
+
+    void prExp(OpExp e, int d) {
+        sayln("OpExp(");
+        indent(d + 1);
+        switch (e.oper) {
+            case OpExp.PLUS:
+                say("PLUS");
+                break;
+            case OpExp.MINUS:
+                say("MINUS");
+                break;
+            case OpExp.MUL:
+                say("MUL");
+                break;
+            case OpExp.DIV:
+                say("DIV");
+                break;
+            case OpExp.EQ:
+                say("EQ");
+                break;
+            case OpExp.NE:
+                say("NE");
+                break;
+            case OpExp.LT:
+                say("LT");
+                break;
+            case OpExp.LE:
+                say("LE");
+                break;
+            case OpExp.GT:
+                say("GT");
+                break;
+            case OpExp.GE:
+                say("GE");
+                break;
+            case OpExp.MOD:
+                say("MOD");
+                break;
+            case OpExp.RSHIFT:
+                say("RSHIFT");
+                break;
+            case OpExp.LSHIFT:
+                say("LSHIFT");
+                break;
+            case OpExp.BITWISEAND:
+                say("BITWISEAND");
+                break;
+            case OpExp.BITWISEOR:
+                say("BITWISEOR");
+                break;
+            case OpExp.BITWISEXOR:
+                say("BITWISEXOR");
+                break;
+            case OpExp.AND:
+                say("AND");
+                break;
+            case OpExp.OR:
+                say("OR");
+                break;
+            case OpExp.COMMA:
+                say("COMMA");
+                break;
+            default:
+                throw new Error("Print.prExp.OpExp");
+        }
+        sayln(",");
+        prExp(e.left, d + 1);
+        sayln(",");
+        prExp(e.right, d + 1);
+        say(")");
+    }
 
     void prExp(VarExp e, int d) {
         sayln("VarExp(");
