@@ -38,9 +38,6 @@ fun int main() {
 
     var int sum2 = x + y;
 
-    var int arr[3] = {1, 2, 3};
-    var int firstElement = arr[0];
-
     struct Point {
         var int x;
         var int y;
