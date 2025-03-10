@@ -29,18 +29,9 @@ public class Print {
         out.println(s);
     }
 
-    void prVar(NameTy v, int d) {
+    void prVar(SimpleVar v, int d) {
         say("SimpleVar(");
         say(v.name.toString());
-        say(")");
-    }
-
-    void prVar(FieldVar v, int d) {
-        sayln("FieldVar(");
-        prVar(v.var, d + 1);
-        sayln(",");
-        indent(d + 1);
-        say(v.field.toString());
         say(")");
     }
 
@@ -55,8 +46,7 @@ public class Print {
     /* Print A_var types. Indent d spaces. */
     void prVar(Var v, int d) {
         indent(d);
-        if (v instanceof SimpleVar) prVar(v, d);
-            /*else if (v instanceof FieldVar) prVar((FieldVar) v, d); */
+        if (v instanceof SimpleVar) prVar((SimpleVar) v, d);
         else if (v instanceof SubscriptVar) prVar((SubscriptVar) v, d);
         else throw new Error("Print.prVar");
     }
@@ -308,10 +298,48 @@ public class Print {
     }
 
     void prExp(PostfixExpLs e, int d) {
+        indent(d);
         sayln("PostfixExpLs(");
-        prExp(e.exp1, d + 1);
+        if (e.exp1 != null) {
+            prExp(e.exp1, d + 1);
+        }
         sayln(",");
-        prExp(e.exp2, d + 1);
+        if (e.exp2 != null) {
+            prExp(e.exp2, d + 1);
+        }
+        say(")");
+    }
+
+    void prExp(ArgExpList e, int d) {
+        indent(d);
+        sayln("ArgExpList(");
+        if (e.exp1 != null) {
+            prExp(e.exp1, d + 1);
+        }
+        sayln(",");
+        if (e.exp2 != null) {
+            prExp(e.exp2, d + 1);
+        }
+        say(")");
+    }
+
+    void prExp(JumpStmt e, int d) {
+        indent(d);
+        say("JumpStmt(");
+        if (e.returning) {
+            say("return");
+            if (e.exp != null) {
+                say(" ");
+                prExp(e.exp, d + 1);
+            }
+        } else if (e.breaking) {
+            say("break");
+        } else if (e.continuing) {
+            say("continue");
+        } else if (e.gotoing) {
+            say("goto ");
+            prVar(e.var, d + 1);
+        }
         say(")");
     }
 
@@ -339,6 +367,8 @@ public class Print {
         else if (e instanceof DecList) prExp((DecList) e, d);
         else if (e instanceof CompoundStmt) prExp((CompoundStmt) e, d);
         else if (e instanceof PostfixExpLs) prExp((PostfixExpLs) e, d);
+        else if (e instanceof ArgExpList) prExp((ArgExpList) e, d);
+        else if (e instanceof JumpStmt) prExp((JumpStmt) e, d);
         else throw new Error("Print.prExp: " + e.getClass());
     }
 
@@ -508,6 +538,8 @@ public class Print {
             prExp((CompoundStmt) s, d);
         } else if (s instanceof StmtList) {
             prStmtList((StmtList) s, d);
+        } else if (s instanceof JumpStmt) {
+            prExp((JumpStmt) s, d);
         } else {
             throw new Error("Print.prStmt: Unknown statement type " + s.getClass());
         }
